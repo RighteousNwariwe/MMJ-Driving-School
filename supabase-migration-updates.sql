@@ -2,6 +2,52 @@
 -- Run this AFTER the initial migration to add missing features
 
 -- ============================================
+-- 0. Ensure has_role function exists
+-- ============================================
+CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role text)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.user_roles 
+    WHERE user_id = _user_id AND role = _role::public.app_role
+  );
+$$;
+
+-- ============================================
+-- 0.5. Ensure admin user has admin role
+-- ============================================
+DO $$
+DECLARE
+  admin_user_id uuid;
+BEGIN
+  -- Get user ID for righteouswebdev@gmail.com
+  SELECT id INTO admin_user_id 
+  FROM auth.users 
+  WHERE email = 'righteouswebdev@gmail.com';
+  
+  IF admin_user_id IS NOT NULL THEN
+    -- Insert admin role if not exists
+    INSERT INTO public.user_roles (user_id, role)
+    VALUES (admin_user_id, 'admin')
+    ON CONFLICT (user_id, role) DO NOTHING;
+  END IF;
+  
+  -- Get user ID for test@gmail.com
+  SELECT id INTO admin_user_id 
+  FROM auth.users 
+  WHERE email = 'test@gmail.com';
+  
+  IF admin_user_id IS NOT NULL THEN
+    -- Insert admin role if not exists
+    INSERT INTO public.user_roles (user_id, role)
+    VALUES (admin_user_id, 'admin')
+    ON CONFLICT (user_id, role) DO NOTHING;
+  END IF;
+END $$;
+
+-- ============================================
 -- 1. Add approved column to gallery_items if not exists
 -- ============================================
 DO $$
@@ -28,54 +74,110 @@ BEGIN
 END $$;
 
 -- ============================================
--- 3. Drop existing policies to recreate them
+-- 3. Enable RLS (required for policies to apply)
+-- ============================================
+ALTER TABLE public.gallery_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
+
+-- ============================================
+-- 4. Drop existing policies to recreate them
 -- ============================================
 DROP POLICY IF EXISTS "public read approved gallery" ON public.gallery_items;
+DROP POLICY IF EXISTS "admins read all gallery" ON public.gallery_items;
 DROP POLICY IF EXISTS "admins manage gallery" ON public.gallery_items;
 DROP POLICY IF EXISTS "public read approved reviews" ON public.reviews;
+DROP POLICY IF EXISTS "admins read all reviews" ON public.reviews;
 DROP POLICY IF EXISTS "users insert reviews" ON public.reviews;
 DROP POLICY IF EXISTS "admins manage reviews" ON public.reviews;
+DROP POLICY IF EXISTS "users read own roles" ON public.user_roles;
+DROP POLICY IF EXISTS "admins read all roles" ON public.user_roles;
 
 -- ============================================
--- 4. Create updated gallery policies
+-- 5. Create updated gallery policies
 -- ============================================
--- Public can read only approved gallery items
-CREATE POLICY "public read approved gallery" ON public.gallery_items 
-  FOR SELECT USING (approved = true);
+CREATE POLICY "public read approved gallery"
+ON public.gallery_items
+FOR SELECT
+USING (approved = true);
 
--- Admins can read all gallery items
-CREATE POLICY "admins read all gallery" ON public.gallery_items
-  FOR SELECT TO authenticated USING (public.has_role(auth.uid(),'admin'));
+CREATE POLICY "admins read all gallery"
+ON public.gallery_items
+FOR SELECT
+TO authenticated
+USING (public.has_role(auth.uid(),'admin'));
 
--- Admins can manage gallery
-CREATE POLICY "admins manage gallery" ON public.gallery_items
-  FOR ALL TO authenticated
-  USING (public.has_role(auth.uid(),'admin'))
-  WITH CHECK (public.has_role(auth.uid(),'admin'));
-
--- ============================================
--- 5. Create updated reviews policies
--- ============================================
--- Public can read only approved reviews
-CREATE POLICY "public read approved reviews" ON public.reviews 
-  FOR SELECT USING (approved = true);
-
--- Admins can read all reviews
-CREATE POLICY "admins read all reviews" ON public.reviews
-  FOR SELECT TO authenticated USING (public.has_role(auth.uid(),'admin'));
-
--- Authenticated users can insert their own reviews
-CREATE POLICY "users insert reviews" ON public.reviews
-  FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid());
-
--- Admins can manage reviews
-CREATE POLICY "admins manage reviews" ON public.reviews
-  FOR ALL TO authenticated
-  USING (public.has_role(auth.uid(),'admin'))
-  WITH CHECK (public.has_role(auth.uid(),'admin'));
+CREATE POLICY "admins manage gallery"
+ON public.gallery_items
+FOR ALL
+TO authenticated
+USING (public.has_role(auth.uid(),'admin'))
+WITH CHECK (public.has_role(auth.uid(),'admin'));
 
 -- ============================================
--- 6. Insert initial reviews (only if table is empty)
+-- 6. Create updated reviews policies
+-- ============================================
+CREATE POLICY "public read approved reviews"
+ON public.reviews
+FOR SELECT
+USING (approved = true);
+
+CREATE POLICY "admins read all reviews"
+ON public.reviews
+FOR SELECT
+TO authenticated
+USING (public.has_role(auth.uid(),'admin'));
+
+CREATE POLICY "users insert reviews"
+ON public.reviews
+FOR INSERT
+TO authenticated
+WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "admins manage reviews"
+ON public.reviews
+FOR ALL
+TO authenticated
+USING (public.has_role(auth.uid(),'admin'))
+WITH CHECK (public.has_role(auth.uid(),'admin'));
+
+-- ============================================
+-- 6. Create user_roles policies
+-- ============================================
+-- Authenticated users can read their own roles
+CREATE POLICY "users read own roles"
+ON public.user_roles
+FOR SELECT
+TO authenticated
+USING (user_id = auth.uid());
+
+-- Admins can read all roles
+CREATE POLICY "admins read all roles"
+ON public.user_roles
+FOR SELECT
+TO authenticated
+USING (public.has_role(auth.uid(),'admin'));
+
+-- ============================================
+-- 7. Storage policies for MMJ Pictures bucket
+-- ============================================
+DROP POLICY IF EXISTS "public read MMJ pics" ON storage.objects;
+DROP POLICY IF EXISTS "admins upload MMJ pics" ON storage.objects;
+DROP POLICY IF EXISTS "admins delete MMJ pics" ON storage.objects;
+
+CREATE POLICY "public read MMJ pics" ON storage.objects 
+  FOR SELECT USING (bucket_id = 'MMJ Pictures');
+
+CREATE POLICY "admins upload MMJ pics" ON storage.objects 
+  FOR INSERT TO authenticated
+  WITH CHECK (bucket_id='MMJ Pictures' AND public.has_role(auth.uid(),'admin'));
+
+CREATE POLICY "admins delete MMJ pics" ON storage.objects 
+  FOR DELETE TO authenticated
+  USING (bucket_id='MMJ Pictures' AND public.has_role(auth.uid(),'admin'));
+
+-- ============================================
+-- 8. Insert initial reviews (only if table is empty)
 -- ============================================
 DO $$
 BEGIN

@@ -20,6 +20,112 @@ const staggerContainer = {
   }
 }
 
+// Static reviews (will be replaced with database later)
+const STATIC_REVIEWS = [
+  {
+    name: 'Sherley',
+    rating: 5,
+    text: 'I will to take this opportunity to thank MMJ driving school team more especially Jimmy and Jacob wow guys you done a very good job of teaching me how to driver i know it wasn\'t easy but yes we did together one More time buti Jimmy you deserve Bells. Thank you so much may God bless you',
+    date: '30 November 2023'
+  },
+  {
+    name: 'Nqobile',
+    rating: 5,
+    text: 'I\'d like to take this opportunity and thank MMJ driving School more specially to my instructor Mr Moloisi (Jimmy), you have been so patient with me from the beginning, very humble and with that I was able to learn fast, you even believed in me when I didn\'t. Today I passed my driving licence code B even though people told me it was hard to pass it but you made it easy for me. Thank you very much. I will always recommend anyone to come have lessons with you because you\'re the best teacher. Super proud. Thank you.',
+    date: '14 November 2023'
+  },
+  {
+    name: 'Zamaswazi',
+    rating: 5,
+    text: 'Jimmy is such a great instructor, patient and teaches you important details to ensure a great and east driving experience.',
+    date: '14 November 2023'
+  },
+  {
+    name: 'Siyabonga',
+    rating: 5,
+    text: 'The journey from fear to confidence in driving was made possible by MMJ\'s exceptional patience and effective lessons. Obtaining my license today feels like a significant achievement, and I credit MMJ Driving School for teaching me so well that I succeeded in passing the test on my first attempt. For those hesitant about learning to drive, I enthusiastically recommend this driving school. The thought of starting can be daunting, but MMJ Driving School creates a supportive environment that fosters learning and boosts confidence. Their approach is truly commendable. Shout out to Jimmy and Jacob, Ngiyabonga kakhulu.',
+    date: '08 November 2023'
+  },
+  {
+    name: 'ndivhuwo',
+    rating: 5,
+    text: 'Great place to do your driving lessons, the driving lesson instructors are very patient and good at they\'re job so i highly recommend for first timer. Thank you for the wonderful service',
+    date: '15 September 2023'
+  },
+  {
+    name: 'Mbali',
+    rating: 5,
+    text: 'Very patient and there\'s no way you won\'t learn, if mj could see how I drive now he\'d be absolutely mortified',
+    date: '29 April 2023'
+  },
+  {
+    name: 'Tracy',
+    rating: 5,
+    text: 'Did my license (code 10) with MMJ driving school. Very professional and well mannered instructors. I highly recommend',
+    date: '16 March 2023'
+  },
+  {
+    name: 'Kelebogile',
+    rating: 5,
+    text: 'The instructor was very patient, they made learning how to park easy. He is good teacher, Highly recommend',
+    date: '13 March 2023'
+  },
+  {
+    name: 'Zama',
+    rating: 5,
+    text: 'Very awesome experience I had with MMJ. He is very patient and you can tell from His teachings that He know\'s his story. The whole experience was enjoyable with him. I\'m happy',
+    date: '07 November 2022'
+  },
+  {
+    name: 'user',
+    rating: 5,
+    text: 'Excellent teacher. Patient and very punctual. I miss his lesson every time when I\'m driving.',
+    date: '27 September 2022'
+  },
+  {
+    name: 'Ofentse',
+    rating: 5,
+    text: 'I absolutely enjoyed driving with MJ. He is patient, attentive and very helpful. 5* service.',
+    date: '22 July 2022'
+  },
+  {
+    name: 'Tracey',
+    rating: 5,
+    text: 'Communication with clients is excellent, always keeps me up to date with events going on, great accommodating skills in terms of when I can be free, very patient',
+    date: '15 May 2022'
+  },
+  {
+    name: 'Khethiwe',
+    rating: 5,
+    text: 'MMJ always keep their clients updated and always professional. So far I\'m grateful and happy',
+    date: '16 October 2021'
+  },
+  {
+    name: 'Wanda',
+    rating: 5,
+    text: 'Amazing experience, the instructor is very patient. They go out of their way to make sure you are ready for your test.',
+    date: '23 January 2021'
+  },
+  {
+    name: 'Stephina',
+    rating: 5,
+    text: 'Great service ever. They communicate with clients pretty well and pay attention to each and everyone. Very certisfying service',
+    date: '05 December 2020'
+  },
+  {
+    name: 'Maharela',
+    rating: 5,
+    text: 'I had a good experience with this driving school, they were very patient with me, taught me everything I needed to to know with driving, they very strict with time management alway make sure that you learn something before going home n I passed n got my driving licence on first attempt',
+    date: '14 November 2020'
+  },
+  {
+    name: 'Tholakele',
+    rating: 5,
+    text: 'Instructor is very patient and has taught me driving very well now I have my driving licence Code: C1',
+    date: '26 October 2020'
+  }
+]
+
 export default function Home() {
   const { user } = useAuth()
   const [contactForm, setContactForm] = useState({
@@ -32,14 +138,14 @@ export default function Home() {
   const [contactSuccess, setContactSuccess] = useState(false)
   const [contactLoading, setContactLoading] = useState(false)
   const [galleryPhotos, setGalleryPhotos] = useState([])
-  const [reviews, setReviews] = useState([])
+  const [reviews, setReviews] = useState(STATIC_REVIEWS)
   const [showReviewForm, setShowReviewForm] = useState(false)
   const [reviewForm, setReviewForm] = useState({ name: '', rating: 5, text: '' })
   const [reviewSubmitting, setReviewSubmitting] = useState(false)
 
   useEffect(() => {
     loadGalleryPhotos()
-    loadReviews()
+    // loadReviews() - Disabled for now, using static reviews
   }, [])
 
   const loadGalleryPhotos = async () => {
@@ -101,6 +207,9 @@ export default function Home() {
     e.preventDefault()
     setReviewSubmitting(true)
 
+    console.log('Submitting review for user:', user?.id)
+    console.log('Review data:', reviewForm)
+
     const { error } = await supabase
       .from('reviews')
       .insert({
@@ -113,6 +222,7 @@ export default function Home() {
     setReviewSubmitting(false)
 
     if (error) {
+      console.error('Review submission error:', error)
       alert('Failed to submit review. Please try again.')
     } else {
       alert('Review submitted! It will appear after admin approval.')
@@ -329,13 +439,13 @@ export default function Home() {
             {reviews.length === 0 ? (
               <div style={{color:'var(--text-muted)',textAlign:'center',padding:'2rem'}}>No reviews yet. Sign in to leave a review!</div>
             ) : (
-              reviews.map((review) => {
+              reviews.map((review, index) => {
                 const initials = review.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()
                 return (
-                  <div key={review.id} className="review-card">
+                  <div key={review.id || index} className="review-card">
                     <div className="review-header">
                       <div className="review-avatar" style={{background:review.rating >= 4 ? 'var(--success)' : 'var(--primary)'}}>{initials}</div>
-                      <div><div className="review-name">{review.name}</div><div className="review-date">{new Date(review.created_at).toLocaleDateString()}</div></div>
+                      <div><div className="review-name">{review.name}</div><div className="review-date">{review.date || (review.created_at ? new Date(review.created_at).toLocaleDateString() : '')}</div></div>
                     </div>
                     <div className="stars">{'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}</div>
                     <div className="review-text">"{review.text}"</div>
