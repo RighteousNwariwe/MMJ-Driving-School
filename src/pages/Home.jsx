@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useState } from 'react'
-import { Car, Steering, MapPin, ShieldCheck, Award, Clock } from 'lucide-react'
+import { Car, MapPin, ShieldCheck, Award, Clock, Settings } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 
@@ -203,7 +203,7 @@ export default function Home() {
               </div>
             </div>
             <div className="service-card">
-              <div className="service-icon amber"><Steering size={32} /></div>
+              <div className="service-icon amber"><Settings size={32} /></div>
               <h3>Code C1 – Medium Truck</h3>
               <p>For vehicles between 3,500 kg and 16,000 kg. Perfect for those entering the transport and logistics industry.</p>
               <div className="service-price">

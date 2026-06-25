@@ -3,17 +3,17 @@
 
 :root {
   /* Color tokens (oklch) */
-  --background: oklch(0.16 0.03 250);
-  --foreground: oklch(0.98 0.005 250);
-  --primary: oklch(0.78 0.17 70);
-  --primary-hover: oklch(0.72 0.18 70);
-  --secondary: oklch(0.35 0.04 250);
-  --card: oklch(0.22 0.03 250);
-  --card-hover: oklch(0.26 0.035 250);
-  --border: oklch(0.3 0.03 250);
-  --text-muted: oklch(0.6 0.02 250);
-  --success: oklch(0.65 0.18 145);
-  --danger: oklch(0.55 0.22 25);
+  --background: #1a1a2e;
+  --foreground: #ffffff;
+  --primary: #f59e0b;
+  --primary-hover: #d97706;
+  --secondary: #3b82f6;
+  --card: #252540;
+  --card-hover: #2d2d4a;
+  --border: #3b3b5c;
+  --text-muted: #9ca3af;
+  --success: #10b981;
+  --danger: #ef4444;
   
   /* Spacing & sizing */
   --nav-h: 80px;
