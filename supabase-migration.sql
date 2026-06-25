@@ -41,13 +41,14 @@ as $$
 $$;
 
 -- ============================================
--- 4. Create gallery_items table for photo gallery
+-- 3. Create gallery_items table for photo gallery
 -- ============================================
 create table public.gallery_items (
   id uuid primary key default gen_random_uuid(),
   title text not null,
   description text,
   image_path text not null,        -- storage key in 'MMJ Pictures' bucket
+  approved boolean default false,  -- admin must approve before showing
   created_at timestamptz default now(),
   created_by uuid references auth.users(id)
 );
@@ -59,9 +60,9 @@ grant insert, update, delete on public.gallery_items to authenticated;
 -- Enable Row Level Security
 alter table public.gallery_items enable row level security;
 
--- Public can read gallery
-create policy "public read gallery" on public.gallery_items 
-  for select using (true);
+-- Public can read only approved gallery items
+create policy "public read approved gallery" on public.gallery_items 
+  for select using (approved = true);
 
 -- Admins can manage gallery
 create policy "admins manage gallery" on public.gallery_items
@@ -96,6 +97,41 @@ create policy "anyone send message" on public.contact_messages
 -- Admins can read messages
 create policy "admins read messages" on public.contact_messages
   for select to authenticated using (public.has_role(auth.uid(),'admin'));
+
+-- ============================================
+-- 6. Create reviews table for user reviews
+-- ============================================
+create table public.reviews (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete set null,
+  name text not null,
+  rating int default 5 check (rating >= 1 and rating <= 5),
+  text text not null,
+  approved boolean default false,  -- admin must approve before showing
+  created_at timestamptz default now()
+);
+
+-- Grant permissions
+grant select on public.reviews to anon, authenticated;
+grant insert, update on public.reviews to authenticated;
+grant all on public.reviews to service_role;
+
+-- Enable Row Level Security
+alter table public.reviews enable row level security;
+
+-- Public can read only approved reviews
+create policy "public read approved reviews" on public.reviews 
+  for select using (approved = true);
+
+-- Authenticated users can insert their own reviews
+create policy "users insert reviews" on public.reviews
+  for insert to authenticated with check (user_id = auth.uid());
+
+-- Admins can manage reviews
+create policy "admins manage reviews" on public.reviews
+  for all to authenticated
+  using (public.has_role(auth.uid(),'admin'))
+  with check (public.has_role(auth.uid(),'admin'));
 
 -- ============================================
 -- 6. Storage policies for MMJ Pictures bucket

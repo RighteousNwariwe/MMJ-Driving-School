@@ -21,6 +21,18 @@ export default function Navbar() {
 
   const isAuthPage = location.pathname === '/auth'
 
+  const scrollToSection = (sectionId) => {
+    setMobileOpen(false)
+    if (location.pathname !== '/') {
+      window.location.href = `/#${sectionId}`
+      return
+    }
+    const element = document.getElementById(sectionId)
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' })
+    }
+  }
+
   return (
     <nav className={scrolled ? 'scrolled' : ''}>
       <Link to="/" className="nav-logo">
@@ -29,11 +41,11 @@ export default function Navbar() {
       </Link>
       
       <div className={`nav-links ${mobileOpen ? 'open' : ''}`}>
-        <Link to="/#about" onClick={() => setMobileOpen(false)}>About</Link>
-        <Link to="/#services" onClick={() => setMobileOpen(false)}>Services</Link>
-        <Link to="/#gallery" onClick={() => setMobileOpen(false)}>Gallery</Link>
-        <Link to="/#reviews" onClick={() => setMobileOpen(false)}>Reviews</Link>
-        <Link to="/#contact" onClick={() => setMobileOpen(false)}>Contact</Link>
+        <button onClick={() => scrollToSection('about')} className="nav-link-btn">About</button>
+        <button onClick={() => scrollToSection('services')} className="nav-link-btn">Services</button>
+        <button onClick={() => scrollToSection('gallery')} className="nav-link-btn">Gallery</button>
+        <button onClick={() => scrollToSection('reviews')} className="nav-link-btn">Reviews</button>
+        <button onClick={() => scrollToSection('contact')} className="nav-link-btn">Contact</button>
         
         {isAdmin && <Link to="/admin" onClick={() => setMobileOpen(false)}>Admin</Link>}
         

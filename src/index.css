@@ -87,7 +87,7 @@ nav.scrolled {
 .nav-links {
   display: flex; align-items: center; gap: 2rem;
 }
-.nav-links a {
+.nav-links a, .nav-links .nav-link-btn {
   color: var(--foreground);
   text-decoration: none;
   font-size: 0.9rem;
@@ -95,8 +95,12 @@ nav.scrolled {
   transition: all 0.3s;
   position: relative;
   opacity: 0.85;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
 }
-.nav-links a::after {
+.nav-links a::after, .nav-links .nav-link-btn::after {
   content: '';
   position: absolute;
   bottom: -4px; left: 0;
@@ -104,11 +108,11 @@ nav.scrolled {
   background: var(--primary);
   transition: width 0.3s;
 }
-.nav-links a:hover {
+.nav-links a:hover, .nav-links .nav-link-btn:hover {
   color: var(--primary);
   opacity: 1;
 }
-.nav-links a:hover::after {
+.nav-links a:hover::after, .nav-links .nav-link-btn:hover::after {
   width: 100%;
 }
 .nav-btn {
@@ -117,13 +121,13 @@ nav.scrolled {
   padding: 12px 24px;
   border-radius: 10px;
   font-weight: 700 !important;
-  box-shadow: 0 4px 16px oklch(0.78 0.17 70 / 0.3);
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
   transition: all 0.3s;
 }
 .nav-btn:hover {
   transform: translateY(-2px);
   background: var(--primary-hover);
-  box-shadow: 0 6px 24px oklch(0.78 0.17 70 / 0.5);
+  box-shadow: 0 6px 24px rgba(245, 158, 11, 0.5);
 }
 .nav-auth {
   display: flex; align-items: center; gap: 12px;

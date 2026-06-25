@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Car, MapPin, ShieldCheck, Award, Clock, Settings } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../context/AuthContext'
 
 // Animation variants
 const fadeInUp = {
@@ -19,16 +20,8 @@ const staggerContainer = {
   }
 }
 
-const REVIEWS = [
-  { name: 'Nqobile', color: '#2563a8', date: 'Nov 2023', text: "Jimmy was so patient with me from the beginning — very humble, and that helped me learn fast. He believed in me when I didn't. I passed Code B even though people told me it was hard!" },
-  { name: 'Siyabonga', color: '#059669', date: 'Nov 2023', text: "The journey from fear to confidence was made possible by MMJ's exceptional patience. I passed on my first attempt. Shout out to Jimmy and Jacob — Ngiyabonga kakhulu!" },
-  { name: 'Sherley', color: '#7c3aed', date: 'Nov 2023', text: "Jimmy and Jacob did a very good job teaching me to drive. It wasn't easy but we did it together. Buti Jimmy, you deserve Bells — thank you so much, may God bless you!" },
-  { name: 'Zamaswazi', color: '#dc2626', date: 'Nov 2023', text: "Jimmy is such a great instructor — patient and teaches you important details to ensure a great and easy driving experience." },
-  { name: 'Tracy', color: '#0891b2', date: 'Mar 2023', text: "Did my Code 10 with MMJ Driving School. Very professional and well-mannered instructors. I highly recommend!" },
-  { name: 'Maharela', color: '#d97706', date: 'Nov 2020', text: "They were very patient with me, taught me everything about driving, very strict with time management, and I passed and got my driving licence on first attempt!" },
-]
-
 export default function Home() {
+  const { user } = useAuth()
   const [contactForm, setContactForm] = useState({
     name: '',
     email: '',
@@ -38,6 +31,42 @@ export default function Home() {
   })
   const [contactSuccess, setContactSuccess] = useState(false)
   const [contactLoading, setContactLoading] = useState(false)
+  const [galleryPhotos, setGalleryPhotos] = useState([])
+  const [reviews, setReviews] = useState([])
+  const [showReviewForm, setShowReviewForm] = useState(false)
+  const [reviewForm, setReviewForm] = useState({ name: '', rating: 5, text: '' })
+  const [reviewSubmitting, setReviewSubmitting] = useState(false)
+
+  useEffect(() => {
+    loadGalleryPhotos()
+    loadReviews()
+  }, [])
+
+  const loadGalleryPhotos = async () => {
+    const { data, error } = await supabase
+      .from('gallery_items')
+      .select('*')
+      .eq('approved', true)
+      .order('created_at', { ascending: false })
+      .limit(12)
+    
+    if (!error && data) {
+      setGalleryPhotos(data)
+    }
+  }
+
+  const loadReviews = async () => {
+    const { data, error } = await supabase
+      .from('reviews')
+      .select('*')
+      .eq('approved', true)
+      .order('created_at', { ascending: false })
+      .limit(20)
+    
+    if (!error && data) {
+      setReviews(data)
+    }
+  }
 
   const handleContactSubmit = async (e) => {
     e.preventDefault()
@@ -67,6 +96,30 @@ export default function Home() {
 
   const handleContactChange = (e) => {
     setContactForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
+  }
+
+  const handleReviewSubmit = async (e) => {
+    e.preventDefault()
+    setReviewSubmitting(true)
+
+    const { error } = await supabase
+      .from('reviews')
+      .insert({
+        user_id: user?.id,
+        name: reviewForm.name,
+        rating: reviewForm.rating,
+        text: reviewForm.text
+      })
+
+    setReviewSubmitting(false)
+
+    if (error) {
+      alert('Failed to submit review. Please try again.')
+    } else {
+      alert('Review submitted! It will appear after admin approval.')
+      setReviewForm({ name: '', rating: 5, text: '' })
+      setShowReviewForm(false)
+    }
   }
   return (
     <>
@@ -245,7 +298,19 @@ export default function Home() {
           <h2 className="section-title">Our Success Stories</h2>
           <p className="section-sub">Celebrating every student who drives away with their licence in hand.</p>
           <div className="gallery-grid">
-            <div className="gallery-empty">Photos coming soon — check back after our admin uploads student success shots!</div>
+            {galleryPhotos.length === 0 ? (
+              <div className="gallery-empty">Photos coming soon — check back after our admin uploads student success shots!</div>
+            ) : (
+              galleryPhotos.map(photo => {
+                const { data: { publicUrl } } = supabase.storage.from('MMJ Pictures').getPublicUrl(photo.image_path)
+                return (
+                  <div key={photo.id} className="gallery-item">
+                    <img src={publicUrl} alt={photo.title} />
+                    {photo.description && <div className="gallery-caption">{photo.description}</div>}
+                  </div>
+                )
+              })
+            )}
           </div>
         </div>
       </motion.section>
@@ -253,7 +318,8 @@ export default function Home() {
       {/* REVIEWS */}
       <motion.section 
         id="reviews" 
-        className="section-pad" style={{background: 'white'}}
+        className="section-pad"
+        style={{background: 'var(--card)'}}
         {...fadeInUp}
         transition={{ duration: 0.6, delay: 0.4 }}
       >
@@ -261,20 +327,85 @@ export default function Home() {
           <div className="section-label">What Students Say</div>
           <h2 className="section-title">Real Reviews from Real Students</h2>
           <div className="reviews-grid">
-            {REVIEWS.map((review, index) => {
-              const initials = review.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()
-              return (
-                <div key={index} className="review-card">
-                  <div className="review-header">
-                    <div className="review-avatar" style={{background:review.color}}>{initials}</div>
-                    <div><div className="review-name">{review.name}</div><div className="review-date">{review.date}</div></div>
+            {reviews.length === 0 ? (
+              <div style={{color:'var(--text-muted)',textAlign:'center',padding:'2rem'}}>No reviews yet. Sign in to leave a review!</div>
+            ) : (
+              reviews.map((review) => {
+                const initials = review.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()
+                return (
+                  <div key={review.id} className="review-card">
+                    <div className="review-header">
+                      <div className="review-avatar" style={{background:review.rating >= 4 ? 'var(--success)' : 'var(--primary)'}}>{initials}</div>
+                      <div><div className="review-name">{review.name}</div><div className="review-date">{new Date(review.created_at).toLocaleDateString()}</div></div>
+                    </div>
+                    <div className="stars">{'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}</div>
+                    <div className="review-text">"{review.text}"</div>
                   </div>
-                  <div className="stars">★★★★★</div>
-                  <div className="review-text">"{review.text}"</div>
-                </div>
-              )
-            })}
+                )
+              })
+            )}
           </div>
+          {user && (
+            <div style={{textAlign:'center',marginTop:'2rem'}}>
+              <button 
+                onClick={() => setShowReviewForm(!showReviewForm)}
+                className="btn-primary"
+                style={{display:'inline-flex',alignItems:'center',gap:'0.5rem'}}
+              >
+                {showReviewForm ? 'Cancel' : 'Write a Review'}
+              </button>
+            </div>
+          )}
+          {showReviewForm && user && (
+            <div style={{maxWidth:'500px',margin:'2rem auto',padding:'2rem',background:'var(--card)',borderRadius:'var(--radius)',border:'1px solid var(--border)'}}>
+              <h3 style={{marginBottom:'1.5rem',textAlign:'center'}}>Submit Your Review</h3>
+              <form onSubmit={handleReviewSubmit}>
+                <div className="form-group">
+                  <label>Your Name</label>
+                  <input
+                    type="text"
+                    value={reviewForm.name}
+                    onChange={(e) => setReviewForm(prev => ({...prev, name: e.target.value}))}
+                    placeholder="Your full name"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Rating</label>
+                  <select
+                    value={reviewForm.rating}
+                    onChange={(e) => setReviewForm(prev => ({...prev, rating: parseInt(e.target.value)}))}
+                  >
+                    <option value={5}>★★★★★ - Excellent</option>
+                    <option value={4}>★★★★☆ - Good</option>
+                    <option value={3}>★★★☆☆ - Average</option>
+                    <option value={2}>★★☆☆☆ - Fair</option>
+                    <option value={1}>★☆☆☆☆ - Poor</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Your Review</label>
+                  <textarea
+                    value={reviewForm.text}
+                    onChange={(e) => setReviewForm(prev => ({...prev, text: e.target.value}))}
+                    placeholder="Share your experience with MMJ Driving School..."
+                    rows={4}
+                    required
+                  />
+                </div>
+                <button type="submit" className="btn-primary btn-full" disabled={reviewSubmitting}>
+                  {reviewSubmitting ? 'Submitting...' : 'Submit Review'}
+                </button>
+              </form>
+            </div>
+          )}
+          {!user && (
+            <div style={{textAlign:'center',marginTop:'2rem'}}>
+              <Link to="/auth" className="btn-outline" style={{display:'inline-flex',alignItems:'center',gap:'0.5rem'}}>
+                Sign In to Write a Review
+              </Link>
+            </div>
+          )}
         </div>
       </motion.section>
 
