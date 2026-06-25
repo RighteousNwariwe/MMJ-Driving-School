@@ -96,7 +96,7 @@ nav.scrolled {
   position: relative;
   opacity: 0.85;
   cursor: pointer;
-  background: rgb(255, 174, 0);
+  background: none;
   border: none;
   padding: 0;
 }
@@ -105,7 +105,7 @@ nav.scrolled {
   position: absolute;
   bottom: -4px; left: 0;
   width: 0; height: 2px;
-  background: var(--primary);
+  background: goldenrod;
   transition: width 0.3s;
 }
 .nav-links a:hover, .nav-links .nav-link-btn:hover {
