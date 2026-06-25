@@ -16,6 +16,7 @@ export default function Admin() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [editingPhoto, setEditingPhoto] = useState(null)
+  const [selectedFile, setSelectedFile] = useState(null)
   const [stats, setStats] = useState({ reviews: 0, photos: 0, messages: 0 })
 
   useEffect(() => {
@@ -67,44 +68,50 @@ export default function Admin() {
     }
   }
 
-  const handleFileUpload = async (e) => {
+  const handleFileSelect = (e) => {
     const files = [...e.target.files]
-    if (!files.length) return
+    if (files.length > 0) {
+      setSelectedFile(files[0])
+    }
+  }
+
+  const handleSubmitPhoto = async () => {
+    if (!selectedFile || !title) {
+      alert('Please select a file and enter a title')
+      return
+    }
 
     setUploading(true)
     setUploadProgress(0)
 
-    let completed = 0
-    for (const file of files) {
-      const name = `${Date.now()}-${file.name.replace(/\s/g, '_')}`
-      
-      const { data, error } = await supabase.storage
-        .from(SUPABASE_BUCKET)
-        .upload(name, file, { upsert: true })
+    const name = `${Date.now()}-${selectedFile.name.replace(/\s/g, '_')}`
+    
+    const { data, error } = await supabase.storage
+      .from(SUPABASE_BUCKET)
+      .upload(name, selectedFile, { upsert: true })
 
-      if (error) {
-        console.error('Upload error:', error)
-        continue
-      }
-
-      // Save metadata
-      await supabase.from('gallery_items').insert({
-        title: title || 'Student Success',
-        description: description || 'Student success photo',
-        image_path: name,
-        created_by: user?.id,
-        approved: false
-      })
-
-      completed++
-      setUploadProgress((completed / files.length) * 100)
+    if (error) {
+      console.error('Upload error:', error)
+      setUploading(false)
+      alert('Upload failed. Please try again.')
+      return
     }
+
+    // Save metadata
+    await supabase.from('gallery_items').insert({
+      title: title,
+      description: description || 'Student success photo',
+      image_path: name,
+      created_by: user?.id,
+      approved: false
+    })
 
     setUploading(false)
     setTitle('')
     setDescription('')
+    setSelectedFile(null)
     loadPhotos()
-    e.target.value = ''
+    document.getElementById('file-input').value = ''
   }
 
   const approvePhoto = async (id) => {
@@ -193,17 +200,17 @@ export default function Admin() {
               <div className="upload-icon"><Upload size={48} /></div>
               <strong>Click to upload photos</strong>
               <p>JPG, PNG, WEBP — max 5 MB each</p>
+              {selectedFile && <p style={{color:'var(--primary)',marginTop:'0.5rem'}}>Selected: {selectedFile.name}</p>}
             </div>
             <input
               type="file"
               id="file-input"
               accept="image/*"
-              multiple
-              onChange={handleFileUpload}
+              onChange={handleFileSelect}
               style={{display:'none'}}
             />
             <div className="form-group" style={{marginTop:'1.5rem'}}>
-              <label>Photo Title</label>
+              <label>Photo Title *</label>
               <input
                 type="text"
                 value={title}
@@ -220,12 +227,14 @@ export default function Admin() {
                 placeholder="Additional details about the photo"
               />
             </div>
-            {uploading && (
-              <div className="upload-progress" style={{display:'block'}}>
-                <p style={{fontSize:'0.85rem',color:'var(--text-muted)',fontWeight:'600'}}>Uploading...</p>
-                <div className="progress-bar"><div className="progress-fill" style={{width:`${uploadProgress}%`}}></div></div>
-              </div>
-            )}
+            <button 
+              onClick={handleSubmitPhoto} 
+              className="btn-primary btn-full" 
+              disabled={uploading || !selectedFile || !title}
+              style={{marginTop:'1rem'}}
+            >
+              {uploading ? 'Uploading...' : 'Submit Photo'}
+            </button>
             <div className="admin-photos-grid">
               {photos.map(photo => {
                 const { data: { publicUrl } } = supabase.storage.from(SUPABASE_BUCKET).getPublicUrl(photo.image_path)

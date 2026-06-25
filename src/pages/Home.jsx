@@ -153,8 +153,8 @@ export default function Home() {
               <h1 className="hero-title">Drive With <em>Confidence</em> From Day One</h1>
               <p className="hero-desc">MMJ Driving School has helped hundreds of students pass their driving tests on the first attempt. Patient, professional instructors ready to guide you every step of the way.</p>
               <div className="hero-ctas">
-                <Link to="/#contact" className="btn-primary">Book a Lesson</Link>
-                <Link to="/#services" className="btn-outline">View Courses</Link>
+                <button onClick={() => document.getElementById('contact')?.scrollIntoView({behavior:'smooth'})} className="btn-primary">Book a Lesson</button>
+                <button onClick={() => document.getElementById('services')?.scrollIntoView({behavior:'smooth'})} className="btn-outline">View Courses</button>
               </div>
               <div className="hero-stats">
                 <div><div className="hero-stat-num">500+</div><div className="hero-stat-label">Students Passed</div></div>
