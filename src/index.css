@@ -116,7 +116,7 @@ nav.scrolled {
   width: 100%;
 }
 .nav-btn {
-  background: var(--primary);
+  background: rgb(255, 187, 0);
   color: var(--background) !important;
   padding: 12px 24px;
   border-radius: 10px;
