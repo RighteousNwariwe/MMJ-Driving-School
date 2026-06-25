@@ -61,7 +61,6 @@ export default function Home() {
       .select('*')
       .eq('approved', true)
       .order('created_at', { ascending: false })
-      .limit(20)
     
     if (!error && data) {
       setReviews(data)
