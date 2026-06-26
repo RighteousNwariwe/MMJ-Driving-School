@@ -81,6 +81,16 @@ ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
 
 -- ============================================
+-- 3.5. Grant table-level permissions
+-- ============================================
+-- Ensure authenticated users can insert reviews
+GRANT INSERT ON public.reviews TO authenticated;
+GRANT SELECT ON public.reviews TO anon, authenticated;
+
+-- Ensure authenticated users can read their own roles
+GRANT SELECT ON public.user_roles TO authenticated;
+
+-- ============================================
 -- 4. Drop existing policies to recreate them
 -- ============================================
 DROP POLICY IF EXISTS "public read approved gallery" ON public.gallery_items;

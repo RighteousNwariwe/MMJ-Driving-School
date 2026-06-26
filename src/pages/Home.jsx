@@ -210,25 +210,31 @@ export default function Home() {
     console.log('Submitting review for user:', user?.id)
     console.log('Review data:', reviewForm)
 
-    const { error } = await supabase
-      .from('reviews')
-      .insert({
-        user_id: user?.id,
-        name: reviewForm.name,
-        rating: reviewForm.rating,
-        text: reviewForm.text
-      })
+    try {
+      const { data, error } = await supabase
+        .from('reviews')
+        .insert({
+          user_id: user?.id,
+          name: reviewForm.name,
+          rating: reviewForm.rating,
+          text: reviewForm.text
+        })
+
+      if (error) {
+        console.error('Review submission error:', error.message)
+        console.error('Full error object:', JSON.stringify(error, null, 2))
+        alert('Failed to submit review: ' + error.message)
+      } else {
+        alert('Review submitted! It will appear after admin approval.')
+        setReviewForm({ name: '', rating: 5, text: '' })
+        setShowReviewForm(false)
+      }
+    } catch (err) {
+      console.error('Unexpected error:', err.message || JSON.stringify(err))
+      alert('Failed to submit review. Please try again.')
+    }
 
     setReviewSubmitting(false)
-
-    if (error) {
-      console.error('Review submission error:', error)
-      alert('Failed to submit review. Please try again.')
-    } else {
-      alert('Review submitted! It will appear after admin approval.')
-      setReviewForm({ name: '', rating: 5, text: '' })
-      setShowReviewForm(false)
-    }
   }
   return (
     <>
