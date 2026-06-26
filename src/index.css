@@ -109,7 +109,7 @@ nav.scrolled {
   transition: width 0.3s;
 }
 .nav-links a:hover, .nav-links .nav-link-btn:hover {
-  color: var(--primary);
+  color: goldenrod;
   opacity: 1;
 }
 .nav-links a:hover::after, .nav-links .nav-link-btn:hover::after {
