@@ -6,7 +6,7 @@
   --background: #1a1a2e;
   --foreground: #ffffff;
   --primary: #f59e0b;
-  --primary-hover: none
+  --primary-hover: #f59e0b ;
   --secondary: #3b82f6;
   --card: #252540;
   --card-hover: #2d2d4a;
@@ -105,7 +105,7 @@ nav.scrolled {
   position: absolute;
   bottom: -4px; left: 0;
   width: 0; height: 2px;
-  background: goldenrod;
+  background: rgba(32, 91, 218, 0.24);
   transition: width 0.3s;
 }
 .nav-links a:hover, .nav-links .nav-link-btn:hover {
@@ -126,8 +126,8 @@ nav.scrolled {
 }
 .nav-btn:hover {
   transform: translateY(-2px);
-  background: var(--primary-hover);
-  box-shadow: 0 6px 24px rgba(245, 183, 11, 0.699);
+  
+  box-shadow: 0 6px 24px rgba(245, 151, 11, 0.911);
 }
 .nav-auth {
   display: flex; align-items: center; gap: 12px;
