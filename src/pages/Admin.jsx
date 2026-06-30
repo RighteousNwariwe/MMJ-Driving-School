@@ -31,6 +31,43 @@ export default function Admin() {
     loadReviews()
   }, [isAdmin, navigate])
 
+  // Realtime subscriptions
+  useEffect(() => {
+    if (!isAdmin) return
+
+    // Subscribe to reviews changes
+    const reviewsChannel = supabase
+      .channel('reviews-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reviews' }, (payload) => {
+        console.log('Reviews change:', payload)
+        loadReviews()
+      })
+      .subscribe()
+
+    // Subscribe to gallery_items changes
+    const photosChannel = supabase
+      .channel('photos-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'gallery_items' }, (payload) => {
+        console.log('Photos change:', payload)
+        loadPhotos()
+      })
+      .subscribe()
+
+    // Subscribe to user_roles changes
+    const rolesChannel = supabase
+      .channel('roles-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_roles' }, (payload) => {
+        console.log('Roles change:', payload)
+      })
+      .subscribe()
+
+    return () => {
+      reviewsChannel.unsubscribe()
+      photosChannel.unsubscribe()
+      rolesChannel.unsubscribe()
+    }
+  }, [isAdmin])
+
   const loadPhotos = async () => {
     const { data, error } = await supabase
       .from('gallery_items')
@@ -163,6 +200,12 @@ export default function Admin() {
     loadReviews()
   }
 
+  const deleteMessage = async (id) => {
+    if (!confirm('Delete this message?')) return
+    await supabase.from('contact_messages').delete().eq('id', id)
+    loadMessages()
+  }
+
   const deletePhoto = async (id, imagePath) => {
     if (!confirm('Delete this photo?')) return
 
@@ -273,55 +316,87 @@ export default function Admin() {
               {/* Manage Existing Photos */}
               <div>
                 <h4 style={{fontSize:'1rem',marginBottom:'1rem',color:'var(--text-muted)'}}>Manage Photos ({photos.length})</h4>
-                <div className="admin-photos-grid" style={{maxHeight:'400px',overflowY:'auto'}}>
-                  {photos.map(photo => {
-                    const { data: { publicUrl } } = supabase.storage.from(SUPABASE_BUCKET).getPublicUrl(photo.image_path)
-                    const isEditing = editingPhoto?.id === photo.id
-                    return (
-                      <div key={photo.id} className="admin-photo">
-                        <img src={publicUrl} alt={photo.description} />
-                        {isEditing ? (
-                          <div className="admin-photo-edit" style={{padding:'0.5rem',background:'var(--card)',borderRadius:'4px'}}>
-                            <input
-                              type="text"
-                              value={editTitle}
-                              onChange={(e) => setEditTitle(e.target.value)}
-                              placeholder="Title"
-                              style={{width:'100%',padding:'4px',marginBottom:'4px',fontSize:'0.75rem'}}
-                            />
-                            <input
-                              type="text"
-                              value={editDescription}
-                              onChange={(e) => setEditDescription(e.target.value)}
-                              placeholder="Description"
-                              style={{width:'100%',padding:'4px',marginBottom:'4px',fontSize:'0.75rem'}}
-                            />
-                            <div style={{display:'flex',gap:'4px'}}>
-                              <button onClick={saveEditPhoto} style={{flex:1,background:'var(--success)',border:'none',color:'white',padding:'4px',borderRadius:'4px',cursor:'pointer',fontSize:'0.7rem'}}>Save</button>
-                              <button onClick={cancelEditPhoto} style={{flex:1,background:'var(--danger)',border:'none',color:'white',padding:'4px',borderRadius:'4px',cursor:'pointer',fontSize:'0.7rem'}}>Cancel</button>
-                            </div>
-                          </div>
-                        ) : (
-                          <>
-                            <div className="admin-photo-status">
-                              {photo.approved ? 
-                                <span style={{color:'var(--success)',fontSize:'0.75rem',fontWeight:600}}>✓ Approved</span> : 
-                                <span style={{color:'var(--text-muted)',fontSize:'0.75rem'}}>Pending</span>
-                              }
-                            </div>
-                            <div className="admin-photo-actions">
-                              <button onClick={() => startEditPhoto(photo)} style={{background:'var(--secondary)',border:'none',color:'white',padding:'4px 8px',borderRadius:'4px',cursor:'pointer',fontSize:'0.75rem',marginRight:'4px'}}>
-                                Edit
-                              </button>
-                              <button onClick={() => rejectPhoto(photo.id, photo.image_path)} style={{background:'var(--danger)',border:'none',color:'white',padding:'4px 8px',borderRadius:'4px',cursor:'pointer',fontSize:'0.75rem'}}>
-                                Delete
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    )
-                  })}
+                <div style={{maxHeight:'500px',overflowY:'auto'}}>
+                  {photos.length === 0 ? (
+                    <div style={{color:'var(--text-muted)',textAlign:'center',padding:'2rem'}}>No photos yet</div>
+                  ) : (
+                    <table style={{width:'100%',borderCollapse:'collapse'}}>
+                      <thead>
+                        <tr style={{borderBottom:'2px solid var(--border)'}}>
+                          <th style={{textAlign:'left',padding:'8px'}}>Photo</th>
+                          <th style={{textAlign:'left',padding:'8px'}}>Title</th>
+                          <th style={{textAlign:'left',padding:'8px'}}>Description</th>
+                          <th style={{textAlign:'left',padding:'8px'}}>Status</th>
+                          <th style={{textAlign:'left',padding:'8px'}}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {photos.map(photo => {
+                          const { data: { publicUrl } } = supabase.storage.from(SUPABASE_BUCKET).getPublicUrl(photo.image_path)
+                          const isEditing = editingPhoto?.id === photo.id
+                          return (
+                            <tr key={photo.id} style={{borderBottom:'1px solid var(--border)'}}>
+                              <td style={{padding:'8px'}}>
+                                <img src={publicUrl} alt={photo.title} style={{width:'60px',height:'60px',objectFit:'cover',borderRadius:'4px'}} />
+                              </td>
+                              <td style={{padding:'8px'}}>
+                                {isEditing ? (
+                                  <input
+                                    type="text"
+                                    value={editTitle}
+                                    onChange={(e) => setEditTitle(e.target.value)}
+                                    style={{width:'100%',padding:'4px',border:'1px solid var(--border)',borderRadius:'4px'}}
+                                  />
+                                ) : (
+                                  <div>{photo.title}</div>
+                                )}
+                              </td>
+                              <td style={{padding:'8px'}}>
+                                {isEditing ? (
+                                  <input
+                                    type="text"
+                                    value={editDescription}
+                                    onChange={(e) => setEditDescription(e.target.value)}
+                                    style={{width:'100%',padding:'4px',border:'1px solid var(--border)',borderRadius:'4px'}}
+                                  />
+                                ) : (
+                                  <div style={{fontSize:'0.85rem',color:'var(--text-muted)'}}>{photo.description || '-'}</div>
+                                )}
+                              </td>
+                              <td style={{padding:'8px'}}>
+                                {isEditing ? (
+                                  <span style={{color:'var(--text-muted)'}}>Editing...</span>
+                                ) : (
+                                  <span style={{
+                                    padding:'4px 8px',
+                                    borderRadius:'12px',
+                                    fontSize:'0.75rem',
+                                    background:photo.approved ? 'var(--success)' : 'var(--text-muted)',
+                                    color:'white'
+                                  }}>
+                                    {photo.approved ? 'Approved' : 'Pending'}
+                                  </span>
+                                )}
+                              </td>
+                              <td style={{padding:'8px'}}>
+                                {isEditing ? (
+                                  <div style={{display:'flex',gap:'4px'}}>
+                                    <button onClick={saveEditPhoto} style={{background:'var(--success)',border:'none',color:'white',padding:'6px 12px',borderRadius:'4px',cursor:'pointer',fontSize:'0.75rem'}}>Save</button>
+                                    <button onClick={cancelEditPhoto} style={{background:'var(--danger)',border:'none',color:'white',padding:'6px 12px',borderRadius:'4px',cursor:'pointer',fontSize:'0.75rem'}}>Cancel</button>
+                                  </div>
+                                ) : (
+                                  <div style={{display:'flex',gap:'8px'}}>
+                                    <button onClick={() => startEditPhoto(photo)} style={{background:'var(--secondary)',border:'none',color:'white',padding:'6px 12px',borderRadius:'4px',cursor:'pointer',fontSize:'0.75rem'}}>Edit</button>
+                                    <button onClick={() => deletePhoto(photo.id, photo.image_path)} style={{background:'var(--danger)',border:'none',color:'white',padding:'6px 12px',borderRadius:'4px',cursor:'pointer',fontSize:'0.75rem'}}>Delete</button>
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  )}
                 </div>
               </div>
             </div>
@@ -350,6 +425,11 @@ export default function Admin() {
                         <div className="admin-msg-from">{msg.name} — {msg.phone || 'No phone'}</div>
                         <div className="admin-msg-text">{msg.message}</div>
                         <div className="admin-msg-date">{msg.course || ''} · {msg.created_at?.split('T')[0] || ''}</div>
+                        <div className="admin-msg-actions">
+                          <button onClick={() => deleteMessage(msg.id)} style={{background:'var(--danger)',border:'none',color:'white',padding:'4px 8px',borderRadius:'4px',cursor:'pointer',fontSize:'0.75rem'}}>
+                            Delete
+                          </button>
+                        </div>
                       </div>
                     ))
                   )}

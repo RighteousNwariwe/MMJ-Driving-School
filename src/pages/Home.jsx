@@ -145,7 +145,22 @@ export default function Home() {
 
   useEffect(() => {
     loadGalleryPhotos()
-    // loadReviews() - Disabled for now, using static reviews
+    loadReviews()
+  }, [])
+
+  // Realtime subscription for reviews
+  useEffect(() => {
+    const reviewsChannel = supabase
+      .channel('home-reviews-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reviews' }, (payload) => {
+        console.log('Reviews change on home:', payload)
+        loadReviews()
+      })
+      .subscribe()
+
+    return () => {
+      reviewsChannel.unsubscribe()
+    }
   }, [])
 
   const loadGalleryPhotos = async () => {
@@ -235,6 +250,22 @@ export default function Home() {
     }
 
     setReviewSubmitting(false)
+  }
+
+  const handleDeleteReview = async (reviewId) => {
+    if (!confirm('Are you sure you want to delete your review?')) return
+
+    const { error } = await supabase
+      .from('reviews')
+      .delete()
+      .eq('id', reviewId)
+      .eq('user_id', user?.id)
+
+    if (error) {
+      alert('Failed to delete review: ' + error.message)
+    } else {
+      loadReviews()
+    }
   }
   return (
     <>
@@ -421,7 +452,10 @@ export default function Home() {
                 return (
                   <div key={photo.id} className="gallery-item">
                     <img src={publicUrl} alt={photo.title} />
-                    {photo.description && <div className="gallery-caption">{photo.description}</div>}
+                    <div className="gallery-info">
+                      <div className="gallery-title">{photo.title}</div>
+                      {photo.description && <div className="gallery-caption">{photo.description}</div>}
+                    </div>
                   </div>
                 )
               })
@@ -447,11 +481,31 @@ export default function Home() {
             ) : (
               reviews.map((review, index) => {
                 const initials = review.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()
+                const isOwnReview = user && review.user_id === user.id
                 return (
                   <div key={review.id || index} className="review-card">
                     <div className="review-header">
                       <div className="review-avatar" style={{background:review.rating >= 4 ? 'var(--success)' : 'var(--primary)'}}>{initials}</div>
-                      <div><div className="review-name">{review.name}</div><div className="review-date">{review.date || (review.created_at ? new Date(review.created_at).toLocaleDateString() : '')}</div></div>
+                      <div style={{flex:1}}>
+                        <div className="review-name">{review.name}</div>
+                        <div className="review-date">{review.date || (review.created_at ? new Date(review.created_at).toLocaleDateString() : '')}</div>
+                      </div>
+                      {isOwnReview && (
+                        <button
+                          onClick={() => handleDeleteReview(review.id)}
+                          style={{
+                            padding: '4px 8px',
+                            background: 'var(--danger)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '0.75rem'
+                          }}
+                        >
+                          Delete
+                        </button>
+                      )}
                     </div>
                     <div className="stars">{'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}</div>
                     <div className="review-text">"{review.text}"</div>

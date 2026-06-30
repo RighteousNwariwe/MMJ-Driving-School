@@ -187,6 +187,14 @@ CREATE POLICY "admins delete MMJ pics" ON storage.objects
   USING (bucket_id='MMJ Pictures' AND public.has_role(auth.uid(),'admin'));
 
 -- ============================================
+-- 8. Enable Supabase Realtime for tables
+-- ============================================
+-- Add tables to realtime publication for live updates
+alter publication supabase_realtime add table public.reviews;
+alter publication supabase_realtime add table public.gallery_items;
+alter publication supabase_realtime add table public.user_roles;
+
+-- ============================================
 -- 8. Insert initial reviews (only if table is empty)
 -- ============================================
 DO $$
