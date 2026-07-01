@@ -50,6 +50,15 @@ export default function Navbar() {
         {isAdmin && <Link to="/admin" onClick={() => setMobileOpen(false)}>Admin</Link>}
         
         {!isAuthPage && !user && <Link to="/auth" className="nav-btn" onClick={() => setMobileOpen(false)}>Sign In</Link>}
+        
+        {user && (
+          <>
+            <div className="nav-auth-mobile">
+              <span className="nav-user">{user.user_metadata?.full_name || user.email}</span>
+              <button className="btn-logout" onClick={handleSignOut}>Sign Out</button>
+            </div>
+          </>
+        )}
       </div>
 
       {user && (
