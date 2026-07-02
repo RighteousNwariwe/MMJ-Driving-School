@@ -132,6 +132,9 @@ nav.scrolled {
 .nav-auth {
   display: flex; align-items: center; gap: 12px;
 }
+.nav-auth-mobile {
+  display: none;
+}
 .nav-user {
   color: var(--foreground);
   font-size: 0.85rem;
