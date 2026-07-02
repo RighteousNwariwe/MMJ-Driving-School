@@ -6,7 +6,7 @@ import { Upload, X, Trash2, LogOut, Image, MessageSquare, BarChart3 } from 'luci
 import { motion } from 'framer-motion'
 
 export default function Admin() {
-  const { user, isAdmin, signOut } = useAuth()
+  const { user, isAdmin, loading } = useAuth()
   const navigate = useNavigate()
   const [photos, setPhotos] = useState([])
   const [messages, setMessages] = useState([])
@@ -22,6 +22,8 @@ export default function Admin() {
   const [stats, setStats] = useState({ reviews: 0, photos: 0, messages: 0 })
 
   useEffect(() => {
+    if (loading) return // Wait for auth to load
+    
     if (!isAdmin) {
       navigate('/')
       return
@@ -29,7 +31,7 @@ export default function Admin() {
     loadPhotos()
     loadMessages()
     loadReviews()
-  }, [isAdmin, navigate])
+  }, [isAdmin, loading, navigate])
 
   // Realtime subscriptions
   useEffect(() => {
@@ -67,6 +69,22 @@ export default function Admin() {
       rolesChannel.unsubscribe()
     }
   }, [isAdmin])
+
+  if (loading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        minHeight: '100vh',
+        background: 'var(--card)',
+        color: 'var(--foreground)',
+        fontSize: '1.2rem'
+      }}>
+        Loading...
+      </div>
+    )
+  }
 
   const loadPhotos = async () => {
     const { data, error } = await supabase
